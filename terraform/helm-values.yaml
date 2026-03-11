@@ -1,0 +1,49 @@
+namespace: wordpress-jamf-test
+
+mariadb:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: mariadb
+    tag: "10.6.4-focal"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  storage:
+    size: 10Gi  # Larger on EKS
+  auth:
+    rootPassword: jamf-cody-test
+    database: jamf-test
+    username: jamf-cody
+    password: jamf-test-password
+
+wordpress:
+  enabled: true
+  replicaCount: 2  # Start with 2 replicas on EKS
+  image:
+    repository: wordpress
+    tag: latest
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  storage:
+    size: 10Gi  # Larger on EKS
+  service:
+    type: LoadBalancer
+    port: 80
+    targetPort: 80
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80

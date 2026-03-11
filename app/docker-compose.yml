@@ -1,0 +1,87 @@
+services:
+  # Frontend service - serves HTML UI
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+    networks:
+      - todo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # API backend service
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    expose:
+      - "5000"
+    depends_on:
+      - db
+      - cache
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: postgres_password
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: todos
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+      NODE_ENV: production
+    networks:
+      - todo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # PostgreSQL Database service
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: todos
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    networks:
+      - todo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache service
+  cache:
+    image: redis:7-alpine
+    expose:
+      - "6379"
+    networks:
+      - todo-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
+networks:
+  todo-network:
+    driver: bridge
